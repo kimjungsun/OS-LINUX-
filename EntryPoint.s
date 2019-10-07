@@ -8,6 +8,16 @@ START:
     mov ax, 0x1000 ; 16bit -> *16 address calculate 
     mov ds, ax     ; protect mode 0x10000 address
     mov es, ax
+mov ax, 0x2401
+int 0x15
+jc .A20GATEERROR
+jmp RAM
+
+.A20GATEERROR:
+in al, 0x92
+or al, 0x02
+and al, 0xFE
+out 0x92, al
 
 RAM:                    ; RAM size calculating.
 .FIRSTCALL:
@@ -57,10 +67,10 @@ mov byte[RAMMESSAGE-$$+0x10000+10],dh
     mov eax, 0x4000003B 
     mov cr0, eax        ; control register set up
 ;;;;; kenel code segment 0x00mode set up    
-    jmp dword 0x08: ( PROTECTEDMODE - $$ + 0x10000 )
+    jmp dword 0x18: ( PROTECTEDMODE - $$ + 0x10000 )
 [BITS 32] 
 PROTECTEDMODE:
-    mov ax, 0x10 
+    mov ax, 0x20 
     mov ds, ax
     mov es, ax     
     mov fs, ax 
@@ -79,7 +89,7 @@ add esp, 12
    push 0           
   call PRINTMESSAGE  
   add esp, 12
-    jmp dword 0x08: 0x10200    ; c language kenel go
+    jmp dword 0x18: 0x10200    ; c language kenel go
 
 PRINTMESSAGE:
     push ebp    
@@ -145,7 +155,22 @@ GDT:
         db 0x00
         db 0x00
         db 0x00
-
+    ;;; IA_32e
+	IA_32eCODEDESCRIPTOR:
+	    dw 0xFFFF
+		dw 0x0000
+		db 0x00
+		db 0x9A
+		db 0xAF
+		db 0x00
+	IA_32eDATADESCRIPTOR:
+	    dw 0xFFFF
+		dw 0x0000
+		db 0x00
+		db 0x92
+		db 0xAF
+		db 0x00
+			
     CODEDESCRIPTOR:     
         dw 0xFFFF       ; Limit [15:0]
         dw 0x0000       ; Base [15:0]
